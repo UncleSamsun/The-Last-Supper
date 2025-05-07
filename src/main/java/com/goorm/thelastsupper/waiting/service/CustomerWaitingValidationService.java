@@ -10,6 +10,7 @@ import com.goorm.thelastsupper.waiting.exception.WaitingException;
 import com.goorm.thelastsupper.waiting.repository.WaitingQueueRepository;
 import com.goorm.thelastsupper.waiting.repository.WaitingSettingRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,6 +19,7 @@ public class CustomerWaitingValidationService {
     private final WaitingSettingRepository waitingSettingRepository;
     private final WaitingQueueRepository waitingQueueRepository;
     private final AccountRepository accountRepository;
+    private final StringRedisTemplate redisTemplate;
 
     public Account validateAccount(String accountId) {
         return accountRepository.findById(accountId)
@@ -40,12 +42,11 @@ public class CustomerWaitingValidationService {
     }
 
     public Long findNextNumber() {
-        Long maxNumber = waitingQueueRepository.findMaxNumber();
-        return (maxNumber == null) ? 1L : maxNumber + 1;
+        return redisTemplate.opsForValue().increment("waiting:number");
     }
 
-    public WaitingQueue waitingQueueSave(WaitingQueue waitingQueue) {
-        return waitingQueueRepository.save(waitingQueue);
+    public void waitingQueueSave(WaitingQueue waitingQueue) {
+        waitingQueueRepository.save(waitingQueue);
     }
 
     private boolean isLastWaiting(WaitingQueue waitingQueue) {

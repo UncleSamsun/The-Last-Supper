@@ -13,31 +13,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CustomerWaitingService {
     private final CustomerWaitingValidationService customerWaitingValidationService;
+    private final CustomerWaitingRedisService customerWaitingRedisService;
+    private final CustomerWaitingQueueProcessor customerWaitingQueueProcessor;
 
-    public WaitingResponse createWaiting(String accountId, int headCount) {
-        // accountId 기반으로 Account 엔티티 조회, 없으면 AccountNotFoundException throw
-        Account account = customerWaitingValidationService.validateAccount(accountId);
-
-        // WaitingSetCategory가 OPEN인지 조회, OPEN이 아니라면 WaitingNotOpenException throw
-        customerWaitingValidationService.validateWaitingSetCategory();
-
-        // Account 기반으로 WaitingQueue 엔티티 조회, WAITING 상태의 고객이 이미 있으면 AlreadyWaitingException throw
-        customerWaitingValidationService.validateAlreadyWaiting(account);
-
-        // 현재 최대 순서번호 + 1
-        Long nextNumber = customerWaitingValidationService.findNextNumber();
-
-        WaitingQueue waitingQueue = WaitingQueue.builder()
-            .account(account)
-            .headCount(headCount)
-            .waitingStatus(WaitingStatus.WAITING)
-            .number(nextNumber)
-            .build();
-
-        // WaitingQueue 저장
-        waitingQueue = customerWaitingValidationService.waitingQueueSave(waitingQueue);
-
-        return WaitingResponse.toWaitingResponse(waitingQueue);
+    public void createWaiting(String accountId, int headCount) {
+        customerWaitingRedisService.enqueue(accountId, headCount); // 큐에 넣고
+        customerWaitingQueueProcessor.processAsyncQueue();             // 바로 처리 시작
     }
 
     public WaitingResponse cancelWaiting(String accountId) {
@@ -52,7 +33,7 @@ public class CustomerWaitingService {
         return WaitingResponse.toWaitingResponse(waitingQueue);
     }
 
-    public WaitingResponse delayWaiting(String accountId) {
+    public void delayWaiting(String accountId) {
         // accountId 기반으로 Account 엔티티 조회, 없으면 AccountNotFoundException throw
         Account account = customerWaitingValidationService.validateAccount(accountId);
 
@@ -63,20 +44,6 @@ public class CustomerWaitingService {
         // 기존 WaitingStatus 를 Delay 로 변경, headCount 반환
         int headCount = customerWaitingValidationService.waitingQueueDelay(account);
 
-        // 현재 최대 순서번호 + 1
-        Long nextNumber = customerWaitingValidationService.findNextNumber();
-
-        WaitingQueue waitingQueue = WaitingQueue.builder()
-                .account(account)
-                .headCount(headCount)
-                .waitingStatus(WaitingStatus.WAITING)
-                .number(nextNumber)
-                .build();
-
-        // WaitingQueue 저장
-        waitingQueue = customerWaitingValidationService.waitingQueueSave(waitingQueue);
-
-        return WaitingResponse.toWaitingResponse(waitingQueue);
     }
 
     public WaitingPositionResponse getWaitingPosition(String accountId) {
