@@ -29,6 +29,8 @@ spring:
 
   jwt:
     secret: ${SECRET_KEY}
+    access-token-expire: ${JWT_ACCESS_TOKEN_EXPIRE:1000000000000}
+    refresh-token-expire: ${JWT_REFRESH_TOKEN_EXPIRE:10000000000000}
 
   config:
     import: optional:file:.env[.properties]
