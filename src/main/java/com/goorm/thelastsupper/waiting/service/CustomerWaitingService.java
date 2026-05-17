@@ -4,7 +4,6 @@ import com.goorm.thelastsupper.waiting.dto.WaitingPositionResponse;
 import com.goorm.thelastsupper.waiting.dto.WaitingResponse;
 import com.goorm.thelastsupper.waiting.entity.WaitingQueue;
 import com.goorm.thelastsupper.account.entity.Account;
-import com.goorm.thelastsupper.waiting.entity.WaitingStatus;
 import com.goorm.thelastsupper.waiting.exception.WaitingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,8 +16,15 @@ public class CustomerWaitingService {
     private final CustomerWaitingQueueProcessor customerWaitingQueueProcessor;
 
     public void createWaiting(String accountId, int headCount) {
-        customerWaitingRedisService.enqueue(accountId, headCount); // 큐에 넣고
-        customerWaitingQueueProcessor.processAsyncQueue();             // 바로 처리 시작
+        Account account = customerWaitingValidationService.validateAccount(accountId);
+        customerWaitingValidationService.validateWaitingSetCategory();
+        customerWaitingValidationService.validateAlreadyWaiting(account);
+
+        if (!customerWaitingRedisService.enqueue(accountId, headCount)) {
+            throw new WaitingException.AlreadyWaitingException();
+        }
+
+        customerWaitingQueueProcessor.processAsyncQueue();
     }
 
     public WaitingResponse cancelWaiting(String accountId) {

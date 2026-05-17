@@ -32,7 +32,9 @@ public class GlobalExceptionHandler {
         FieldError fieldError = ex.getBindingResult().getFieldError();
 
         String message = fieldError != null ? fieldError.getDefaultMessage() : "검증 오류입니다.";
-		log.info("입력 오류 필드 - {}, 입력값 : {}", fieldError.getField(), fieldError.getRejectedValue());
+        if (fieldError != null) {
+            log.info("입력 오류 필드 - {}, 입력값 : {}", fieldError.getField(), fieldError.getRejectedValue());
+        }
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(ErrorCode.INVALID_INPUT_PARAMETER.name(), message));

@@ -2,6 +2,7 @@ package com.goorm.thelastsupper.reservation.plan.entity;
 
 import com.goorm.thelastsupper.common.entity.BaseEntity;
 import com.goorm.thelastsupper.reservation.slot.entity.ReservationSlot;
+import com.goorm.thelastsupper.reservation.slot.entity.SlotStatus;
 import com.goorm.thelastsupper.reservation.plan.dto.OpenSlotsCommandRequest;
 import com.goorm.thelastsupper.reservation.plan.dto.ReservationPlanResponse;
 import com.goorm.thelastsupper.restaurant.entity.Restaurant;

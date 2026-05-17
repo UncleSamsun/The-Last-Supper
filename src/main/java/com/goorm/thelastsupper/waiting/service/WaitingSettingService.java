@@ -15,13 +15,10 @@ import com.goorm.thelastsupper.waiting.repository.WaitingQueueRepository;
 import com.goorm.thelastsupper.waiting.repository.WaitingSettingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StopWatch;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +33,7 @@ public class WaitingSettingService {
     private final WaitingQueueRepository waitingQueueRepository;
 
     private final RedisTemplate<String, WaitingSettingCache> redisCachedTemplate;
+    private static final Duration WAITING_SETTING_CACHE_TTL = Duration.ofMinutes(5);
 
 
     @Transactional
@@ -62,9 +60,7 @@ public class WaitingSettingService {
                     .findFirstByRestaurant_IdOrderByIdDesc(id)
                     .orElse(null);
             if (latestWaitingSetting != null) {
-                redisCachedTemplate.opsForValue().set(cacheKey,
-                        WaitingSettingCache.from(latestWaitingSetting),
-                        Duration.ofMinutes(5));
+                saveWaitingSettingCache(cacheKey, WaitingSettingCache.from(latestWaitingSetting));
             }
             long elapsed = System.currentTimeMillis() - startTime;
             log.info("DB에서 조회 및 캐시 저장 완료 ({}ms)", elapsed);
@@ -96,14 +92,7 @@ public class WaitingSettingService {
         String cacheKey = "waiting-setting:" + request.restaurantId();
         WaitingSettingCache cacheValue = WaitingSettingCache.from(setting);
 
-        redisCachedTemplate.opsForValue().set(cacheKey,cacheValue);
-
-        try {
-            redisCachedTemplate.opsForValue().set(cacheKey, cacheValue, Duration.ofMinutes(5));
-            log.info("Redis 캐시 갱신 완료: {}", cacheKey);
-        } catch (Exception e) {
-            log.error("Redis 캐시 갱신 실패: {}", e.getMessage());
-        }
+        saveWaitingSettingCache(cacheKey, cacheValue);
         // 로그로 저장된 대기 상태 확인
         log.info("새로운 대기 상태가 OPEN으로 설정됨: {}", setting.getWaitingSetCategory());
 
@@ -148,14 +137,7 @@ public class WaitingSettingService {
         String cacheKey = "waiting-setting:"  + request.restaurantId();
         WaitingSettingCache cacheValue = WaitingSettingCache.from(setting);
 
-        redisCachedTemplate.opsForValue().set(cacheKey,cacheValue);
-
-        try {
-            redisCachedTemplate.opsForValue().set(cacheKey, cacheValue, Duration.ofMinutes(5));
-            log.info("Redis 캐시 갱신 완료 (PAUSE): {}", cacheKey);
-        } catch (Exception e) {
-            log.error("Redis 캐시 갱신 실패(PAUSE): {}", e.getMessage());
-        }
+        saveWaitingSettingCache(cacheKey, cacheValue);
 
         // 5. 응답 DTO 반환
         return WaitingSettingResponse.from(setting);
@@ -198,15 +180,17 @@ public class WaitingSettingService {
         String cacheKey = "waiting-setting:"  + request.restaurantId();
         WaitingSettingCache cacheValue = WaitingSettingCache.from(setting);
 
-        redisCachedTemplate.opsForValue().set(cacheKey,cacheValue);
-
-        try {
-            redisCachedTemplate.opsForValue().set(cacheKey, cacheValue, Duration.ofMinutes(5));
-            log.info("Redis 캐시 갱신 완료 (CLOSE): {}", cacheKey);
-        } catch (Exception e) {
-            log.error("Redis 캐시 갱신 실패(CLOSE): {}", e.getMessage());
-        }
+        saveWaitingSettingCache(cacheKey, cacheValue);
 
         return WaitingSettingResponse.from(setting);
+    }
+
+    private void saveWaitingSettingCache(String cacheKey, WaitingSettingCache cacheValue) {
+        try {
+            redisCachedTemplate.opsForValue().set(cacheKey, cacheValue, WAITING_SETTING_CACHE_TTL);
+            log.info("Redis 캐시 갱신 완료: {}", cacheKey);
+        } catch (Exception e) {
+            log.error("Redis 캐시 갱신 실패: {}", cacheKey, e);
+        }
     }
 }

@@ -3,8 +3,6 @@ package com.goorm.thelastsupper.waiting.controller;
 import com.goorm.thelastsupper.waiting.dto.WaitingPositionResponse;
 import com.goorm.thelastsupper.waiting.dto.WaitingRequest;
 import com.goorm.thelastsupper.waiting.dto.WaitingResponse;
-import com.goorm.thelastsupper.waiting.service.CustomerWaitingQueueProcessor;
-import com.goorm.thelastsupper.waiting.service.CustomerWaitingRedisService;
 import com.goorm.thelastsupper.waiting.service.CustomerWaitingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,15 +16,12 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/waiting")
 public class CustomerWaitingController {
     private final CustomerWaitingService customerWaitingService;
-    private final CustomerWaitingRedisService customerWaitingRedisService;
-    private final CustomerWaitingQueueProcessor customerWaitingQueueProcessor;
 
     @PostMapping
     public ResponseEntity<WaitingResponse> createWaiting(@RequestParam String accountId,
                                                          @Valid @RequestBody WaitingRequest request) {
         log.info("accountId={}, headCount={}", accountId, request.headCount());
-        customerWaitingRedisService.enqueue(accountId, request.headCount());
-        customerWaitingQueueProcessor.processAsyncQueue();
+        customerWaitingService.createWaiting(accountId, request.headCount());
 
         return ResponseEntity.accepted().build();
     }

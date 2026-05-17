@@ -29,10 +29,12 @@ public class TokenAuthFilter extends OncePerRequestFilter {
 	private final List<String> notJwtPaths = List.of(
 		"/api/v1/signup",
 		"/api/v1/login",
-		"/api/refresh",
+		"/api/v1/refresh",
 		"/actuator",
 		"/metrics",
-		"/prometheus"
+		"/prometheus",
+		"/swagger-ui",
+		"/v3/api-docs"
 	);
 
 	@Override
