@@ -5,9 +5,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.goorm.thelastsupper.account.dto.AccountResponse;
+import com.goorm.thelastsupper.account.dto.AccountSummaryResponse;
 import com.goorm.thelastsupper.account.dto.AccountUpdateRequest;
 import com.goorm.thelastsupper.account.dto.PasswordRequest;
 import com.goorm.thelastsupper.account.entity.Account;
+import com.goorm.thelastsupper.account.repository.AccountRepository;
+
+import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,12 +22,22 @@ import lombok.extern.slf4j.Slf4j;
 public class AccountService {
 
 	private final AccountValidationService accountValidationService;
+	private final AccountRepository accountRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final AuthService authService;
 
 	public AccountResponse getAccount(String accountId) {
 		Account account = accountValidationService.findById(accountId);
 		return AccountResponse.toAccountResponse(account);
+	}
+
+	public List<AccountSummaryResponse> getAccountSummaries(List<String> accountIds) {
+		if (accountIds == null || accountIds.isEmpty()) {
+			return List.of();
+		}
+		return accountRepository.findAllById(accountIds).stream()
+			.map(AccountSummaryResponse::from)
+			.toList();
 	}
 
 	@Transactional

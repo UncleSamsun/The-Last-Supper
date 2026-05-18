@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -72,6 +73,53 @@ class CustomerWaitingServiceTest {
                 WaitingException.AccountNotFoundException.class,
                 () -> customerWaitingService.createWaiting("missing-account", 2)
         );
+
+        verifyNoInteractions(customerWaitingRedisService, customerWaitingQueueProcessor);
+    }
+
+    @Test
+    void delayWaiting_movesCurrentWaitingToBackOfQueue() {
+        Account account = Account.builder().build();
+        when(customerWaitingValidationService.validateAccount("account-1")).thenReturn(account);
+        when(customerWaitingValidationService.waitingQueueDelay(account)).thenReturn(2);
+        when(customerWaitingRedisService.enqueue("account-1", 2)).thenReturn(true);
+
+        customerWaitingService.delayWaiting("account-1");
+
+        InOrder inOrder = inOrder(
+                customerWaitingValidationService,
+                customerWaitingRedisService,
+                customerWaitingQueueProcessor
+        );
+        inOrder.verify(customerWaitingValidationService).validateAccount("account-1");
+        inOrder.verify(customerWaitingValidationService).validateWaitingSetCategory();
+        inOrder.verify(customerWaitingValidationService).waitingQueueDelay(account);
+        inOrder.verify(customerWaitingRedisService).enqueue("account-1", 2);
+        inOrder.verify(customerWaitingQueueProcessor).processAsyncQueue();
+    }
+
+    @Test
+    void delayWaiting_whenRequeueFailsThrowsAlreadyWaiting() {
+        Account account = Account.builder().build();
+        when(customerWaitingValidationService.validateAccount("account-1")).thenReturn(account);
+        when(customerWaitingValidationService.waitingQueueDelay(account)).thenReturn(2);
+        when(customerWaitingRedisService.enqueue("account-1", 2)).thenReturn(false);
+
+        assertThrows(
+                WaitingException.AlreadyWaitingException.class,
+                () -> customerWaitingService.delayWaiting("account-1")
+        );
+
+        verify(customerWaitingQueueProcessor, org.mockito.Mockito.never()).processAsyncQueue();
+    }
+
+    @Test
+    void delayWaiting_whenAlreadyLastKeepsCurrentWaiting() {
+        Account account = Account.builder().build();
+        when(customerWaitingValidationService.validateAccount("account-1")).thenReturn(account);
+        when(customerWaitingValidationService.waitingQueueDelay(account)).thenReturn(0);
+
+        customerWaitingService.delayWaiting("account-1");
 
         verifyNoInteractions(customerWaitingRedisService, customerWaitingQueueProcessor);
     }

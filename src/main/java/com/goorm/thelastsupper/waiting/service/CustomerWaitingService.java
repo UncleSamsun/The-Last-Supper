@@ -5,6 +5,7 @@ import com.goorm.thelastsupper.waiting.dto.WaitingResponse;
 import com.goorm.thelastsupper.waiting.entity.WaitingQueue;
 import com.goorm.thelastsupper.account.entity.Account;
 import com.goorm.thelastsupper.waiting.exception.WaitingException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +40,7 @@ public class CustomerWaitingService {
         return WaitingResponse.toWaitingResponse(waitingQueue);
     }
 
+    @Transactional
     public void delayWaiting(String accountId) {
         // accountId 기반으로 Account 엔티티 조회, 없으면 AccountNotFoundException throw
         Account account = customerWaitingValidationService.validateAccount(accountId);
@@ -50,6 +52,15 @@ public class CustomerWaitingService {
         // 기존 WaitingStatus 를 Delay 로 변경, headCount 반환
         int headCount = customerWaitingValidationService.waitingQueueDelay(account);
 
+        if (headCount <= 0) {
+            return;
+        }
+
+        if (!customerWaitingRedisService.enqueue(accountId, headCount)) {
+            throw new WaitingException.AlreadyWaitingException();
+        }
+
+        customerWaitingQueueProcessor.processAsyncQueue();
     }
 
     public WaitingPositionResponse getWaitingPosition(String accountId) {

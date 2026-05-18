@@ -120,6 +120,32 @@ sequenceDiagram
     Worker->>Redis: pending key 제거
 ```
 
+## 서비스 화면
+
+### 고객 예약
+
+예약 가능한 슬롯과 상태를 확인하고, 인원 수를 입력해 예약을 생성할 수 있습니다.
+
+![예약 화면](docs/screenshots/reservations-page.png)
+
+### 고객 웨이팅
+
+웨이팅 등록 후 현재 대기 큐와 내 앞 대기 수를 확인할 수 있습니다.
+
+![웨이팅 등록 화면](docs/screenshots/waiting-created.png)
+
+### 점주 운영
+
+점주는 웨이팅 오픈/중단/종료, 다음 고객 호출, 슬롯 상태 변경, 매장 정보 저장을 한 화면에서 처리할 수 있습니다.
+
+![점주 운영 화면](docs/screenshots/owner-page.png)
+
+### API 테스트 콘솔
+
+프론트에서 주요 API 호출 결과를 한 번에 점검할 수 있는 테스트 콘솔을 구성했습니다.
+
+![API 테스트 화면](docs/screenshots/api-lab-results.png)
+
 ## 문제 해결 경험
 
 ### 1. 웨이팅 등록 응답 속도 개선

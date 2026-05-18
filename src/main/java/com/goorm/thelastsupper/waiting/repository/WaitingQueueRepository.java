@@ -5,6 +5,7 @@ import com.goorm.thelastsupper.waiting.entity.WaitingQueue;
 import com.goorm.thelastsupper.waiting.entity.WaitingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,8 +15,8 @@ import java.util.Optional;
 public interface WaitingQueueRepository extends JpaRepository<WaitingQueue,String> {
     boolean existsByAccountAndWaitingStatus(Account account, WaitingStatus waitingStatus);
 
-    @Query("SELECT MAX(wq.number) FROM WaitingQueue wq")
-    Long findMaxNumber();
+    @Query("SELECT MAX(wq.number) FROM WaitingQueue wq WHERE wq.waitingStatus = :waitingStatus")
+    Long findMaxNumberByWaitingStatus(@Param("waitingStatus") WaitingStatus waitingStatus);
 
     Optional<WaitingQueue> findByAccountAndWaitingStatus(Account account, WaitingStatus waitingStatus);
 

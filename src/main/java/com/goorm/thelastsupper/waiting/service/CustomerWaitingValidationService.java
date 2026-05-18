@@ -51,7 +51,7 @@ public class CustomerWaitingValidationService {
 
     private boolean isLastWaiting(WaitingQueue waitingQueue) {
         Long myNumber = waitingQueue.getNumber();
-        Long maxNumber = waitingQueueRepository.findMaxNumber();
+        Long maxNumber = waitingQueueRepository.findMaxNumberByWaitingStatus(WaitingStatus.WAITING);
 
         return myNumber != null && myNumber.equals(maxNumber);
     }
@@ -71,7 +71,7 @@ public class CustomerWaitingValidationService {
                 .orElseThrow(WaitingException.WaitingNotFoundException::new);
 
         if (isLastWaiting(waitingQueue)) {
-            throw new WaitingException.AlreadyLastWaitingException();
+            return 0;
         }
 
         waitingQueue.setWaitingStatus(WaitingStatus.DELAY);
